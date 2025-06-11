@@ -1,5 +1,4 @@
-from collections.abc import AsyncGenerator
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Optional, Dict, Any, Tuple
 from urllib.parse import quote
 
 import httpx

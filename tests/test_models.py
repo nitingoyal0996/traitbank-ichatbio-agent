@@ -2,7 +2,7 @@ import pytest
 from pydantic import ValidationError, BaseModel, field_validator
 from typing import List, Optional, Union
 
-from src.models.taxon import TaxonDataRequest, TaxonData
+from src.models.taxons import TaxonDataRequest, TaxonData
 from src.models.traits import TraitDataRequest, TraitData
 
 class TestTaxonDataRequest:

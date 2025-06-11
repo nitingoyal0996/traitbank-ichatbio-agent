@@ -12,44 +12,12 @@ from ichatbio.types import (
     ProcessMessage,
     TextMessage,
 )
-from pydantic import BaseModel, Field, model_validator, ValidationError
+from pydantic import BaseModel, ValidationError
 from typing_extensions import override
 
 from .tools import TraitBankTools
-from .models import TaxonDataResponse, TraitDataResponse
+from .models import TraitBankRequest, TaxonDataResponse, TraitDataResponse
 
-
-class TraitBankRequest(BaseModel):
-    """
-    Request model for TraitBank data retrieval.
-    Provide either a taxon name to search for taxon information,
-    or a taxon ID (or comma-separated IDs) to retrieve trait data.
-    If both name and id are provided, name will be prioritized.
-    """
-    name: Optional[str] = Field(
-        default=None,
-        description="Taxon name to search for (e.g., 'Homo sapiens'). Prioritized if both name and id are given.",
-        examples=["Homo sapiens", "Anadara"]
-    )
-    id: Optional[str] = Field(
-        default=None,
-        description="Taxon ID or comma-separated taxon IDs (e.g., '12345', '94,95'). Used if name is not provided.",
-        examples=["12345", "94,95"]
-    )
-
-    @model_validator(mode='before')
-    @classmethod
-    def check_and_prioritize_input(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            name = data.get('name')
-            taxon_id = data.get('id')
-
-            if name and taxon_id:
-                # If both name and id are present, prioritize name by nullifying id.
-                data['id'] = None
-            elif not name and not taxon_id:
-                raise ValueError('Either "name" or "id" must be provided.')
-        return data
 
 
 trait_bank_agent_card = AgentCard(
@@ -124,19 +92,20 @@ class TraitBankAgent(IChatBioAgent):
         if count == 0:
             if data_type == "taxon":
                 return f"No taxon records found for name '{query_identifier}'."
-            else: # trait
+            else:
                 return f"No trait records found for taxon ID(s): {query_identifier}."
 
         if data_type == "taxon":
             return f"Found {count} taxon record(s) for name '{query_identifier}'. Results returned as {format_desc}."
-        else: # trait
+        else:
             num_taxa_with_traits = 0
-            if isinstance(data_root, dict): # data_root is the dict of taxon_id -> list_of_traits
+            # data_root is the dict of taxon_id -> list_of_traits
+            if isinstance(data_root, dict):
                 num_taxa_with_traits = len(data_root.keys())
             
             if num_taxa_with_traits > 0:
                 return f"Retrieved {count} trait record(s) across {num_taxa_with_traits} taxon/taxa for ID(s): {query_identifier}. Results returned as {format_desc}."
-            else: # Should be caught by count == 0, but as a fallback
+            else:
                 return f"Retrieved {count} trait record(s) for taxon ID(s): {query_identifier}. Results returned as {format_desc}."
 
 
@@ -165,16 +134,16 @@ class TraitBankAgent(IChatBioAgent):
                         text=f"API error fetching taxon data {process_step_description_prefix}: {e.response.status_code} {e.response.reason_phrase}. URL: {e.request.url}"
                     )
                     return
-                except httpx.RequestError as e: # More general network errors
+                except httpx.RequestError as e: 
                     yield TextMessage(
                         text=f"Request error fetching taxon data {process_step_description_prefix}: {str(e)}. URL: {e.request.url}"
                     )
                     return
-                except Exception as e: # Catch other unexpected errors from the tool
+                except Exception as e:
                     yield TextMessage(text=f"Error calling taxon data tool {process_step_description_prefix}: {str(e)}")
                     return
 
-                if raw_taxon_data is None: # Tool returns None if content is empty or unparseable
+                if raw_taxon_data is None:
                     yield TextMessage(text=f"No data returned from taxon search API {process_step_description_prefix}.")
                     return
                 
@@ -200,7 +169,6 @@ class TraitBankAgent(IChatBioAgent):
                 if taxon_count > 0 and taxon_data_root:
                     found_taxon_ids = [str(tid).strip() for tid in taxon_data_root.keys() if str(tid).strip()]
                 
-                # construct artifact metadata
                 taxon_metadata = {
                     "taxon_name_query": params.name,
                     "query_params": self.tools._get_query_params(data_type="taxon"),
