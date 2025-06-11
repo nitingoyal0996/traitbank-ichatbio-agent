@@ -65,50 +65,6 @@ class TraitBankAgent(IChatBioAgent):
             yield TextMessage(text=f"Unknown entrypoint: {entrypoint}")
 
 
-    # Helper methods for counting and summary, now in the agent
-    def _count_taxon_records(self, taxon_data_root: Optional[Dict[str, Any]]) -> int:
-        """Counts records from the .root of TaxonDataResponse."""
-        if taxon_data_root is None or not isinstance(taxon_data_root, dict):
-            return 0
-        return len(taxon_data_root.keys())
-
-
-    def _count_trait_records(self, trait_data_root: Optional[Dict[str, List[Any]]]) -> int:
-        """Counts records from the .root of TraitDataResponse."""
-        if trait_data_root is None or not isinstance(trait_data_root, dict):
-            return 0
-        total_traits = 0
-        for traits_list in trait_data_root.values():
-            if isinstance(traits_list, list):
-                total_traits += len(traits_list)
-        return total_traits
-
-
-    def _generate_summary_text(
-        self, data_root: Optional[Dict[Any, Any]], count: int, query_identifier: str, data_type: str
-    ) -> str:
-        """Generates summary text based on processed data root."""
-        format_desc = "associative array (dictionary) with taxon IDs as keys"
-        if count == 0:
-            if data_type == "taxon":
-                return f"No taxon records found for name '{query_identifier}'."
-            else:
-                return f"No trait records found for taxon ID(s): {query_identifier}."
-
-        if data_type == "taxon":
-            return f"Found {count} taxon record(s) for name '{query_identifier}'. Results returned as {format_desc}."
-        else:
-            num_taxa_with_traits = 0
-            # data_root is the dict of taxon_id -> list_of_traits
-            if isinstance(data_root, dict):
-                num_taxa_with_traits = len(data_root.keys())
-            
-            if num_taxa_with_traits > 0:
-                return f"Retrieved {count} trait record(s) across {num_taxa_with_traits} taxon/taxa for ID(s): {query_identifier}. Results returned as {format_desc}."
-            else:
-                return f"Retrieved {count} trait record(s) for taxon ID(s): {query_identifier}. Results returned as {format_desc}."
-
-
     async def fetch_data(
         self, params: TraitBankRequest
     ) -> AsyncGenerator[Message, None]:
@@ -298,3 +254,47 @@ class TraitBankAgent(IChatBioAgent):
             yield TextMessage(text=f"Invalid input parameters: {str(ve)}")
         except Exception as e:
             yield TextMessage(text=f"An unexpected error occurred in the agent: {str(e)}")
+
+
+    # Helper methods for counting and summary, now in the agent
+    def _count_taxon_records(self, taxon_data_root: Optional[Dict[str, Any]]) -> int:
+        """Counts records from the .root of TaxonDataResponse."""
+        if taxon_data_root is None or not isinstance(taxon_data_root, dict):
+            return 0
+        return len(taxon_data_root.keys())
+
+
+    def _count_trait_records(self, trait_data_root: Optional[Dict[str, List[Any]]]) -> int:
+        """Counts records from the .root of TraitDataResponse."""
+        if trait_data_root is None or not isinstance(trait_data_root, dict):
+            return 0
+        total_traits = 0
+        for traits_list in trait_data_root.values():
+            if isinstance(traits_list, list):
+                total_traits += len(traits_list)
+        return total_traits
+
+
+    def _generate_summary_text(
+        self, data_root: Optional[Dict[Any, Any]], count: int, query_identifier: str, data_type: str
+    ) -> str:
+        """Generates summary text based on processed data root."""
+        format_desc = "associative array (dictionary) with taxon IDs as keys"
+        if count == 0:
+            if data_type == "taxon":
+                return f"No taxon records found for name '{query_identifier}'."
+            else:
+                return f"No trait records found for taxon ID(s): {query_identifier}."
+
+        if data_type == "taxon":
+            return f"Found {count} taxon record(s) for name '{query_identifier}'. Results returned as {format_desc}."
+        else:
+            num_taxa_with_traits = 0
+            # data_root is the dict of taxon_id -> list_of_traits
+            if isinstance(data_root, dict):
+                num_taxa_with_traits = len(data_root.keys())
+            
+            if num_taxa_with_traits > 0:
+                return f"Retrieved {count} trait record(s) across {num_taxa_with_traits} taxon/taxa for ID(s): {query_identifier}. Results returned as {format_desc}."
+            else:
+                return f"Retrieved {count} trait record(s) for taxon ID(s): {query_identifier}. Results returned as {format_desc}."
