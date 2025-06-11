@@ -83,24 +83,20 @@ class TraitBankAgent(IChatBioAgent):
                 raw_taxon_data: Optional[Dict[Any, Any]] = None
                 taxon_uri: Optional[str] = None
                 
+                error_message = ""
                 try:
                     raw_taxon_data, taxon_uri = await self.tools.fetch_taxon_data_by_name(params.name)
                 except httpx.HTTPStatusError as e:
-                    yield TextMessage(
-                        text=f"API error fetching taxon data {process_step_description_prefix}: {e.response.status_code} {e.response.reason_phrase}. URL: {e.request.url}"
-                    )
-                    return
-                except httpx.RequestError as e: 
-                    yield TextMessage(
-                        text=f"Request error fetching taxon data {process_step_description_prefix}: {str(e)}. URL: {e.request.url}"
-                    )
-                    return
+                    error_message = f"API error fetching taxon data {process_step_description_prefix}: {e.response.status_code} {e.response.reason_phrase}. URL: {e.request.url}"
+                except httpx.RequestError as e:
+                    error_message = f"Request error fetching taxon data {process_step_description_prefix}: {str(e)}. URL: {e.request.url}"
                 except Exception as e:
-                    yield TextMessage(text=f"Error calling taxon data tool {process_step_description_prefix}: {str(e)}")
-                    return
+                    error_message = f"Error calling taxon data tool {process_step_description_prefix}: {str(e)}"
 
-                if raw_taxon_data is None:
-                    yield TextMessage(text=f"No data returned from taxon search API {process_step_description_prefix}.")
+                if error_message or raw_taxon_data is None:
+                    if not error_message:
+                        error_message = f"No data returned from taxon search API {process_step_description_prefix}."
+                    yield TextMessage(text=error_message)
                     return
                 
                 validated_taxon_response: Optional[TaxonDataResponse] = None
@@ -182,26 +178,30 @@ class TraitBankAgent(IChatBioAgent):
             
             raw_trait_data: Optional[Dict[Any, Any]] = None
             trait_uri: Optional[str] = None
+            error_message = ""
             try:
                 raw_trait_data, trait_uri = await self.tools.fetch_trait_data_by_ids(target_taxon_ids_str)
             except httpx.HTTPStatusError as e:
-                yield TextMessage(
-                    text=f"API error fetching trait data for ID(s) '{query_identifier_for_traits}': {e.response.status_code} {e.response.reason_phrase}. URL: {e.request.url}"
+                error_message = (
+                    f"API error fetching trait data for ID(s) '{query_identifier_for_traits}': "
+                    f"{e.response.status_code} {e.response.reason_phrase}. URL: {e.request.url}"
                 )
-                return
             except httpx.RequestError as e:
-                yield TextMessage(
-                    text=f"Request error fetching trait data for ID(s) '{query_identifier_for_traits}': {str(e)}. URL: {e.request.url}"
+                error_message = (
+                    f"Request error fetching trait data for ID(s) '{query_identifier_for_traits}': "
+                    f"{str(e)}. URL: {e.request.url}"
                 )
-                return
             except Exception as e:
-                yield TextMessage(text=f"Error calling trait data tool for ID(s) '{query_identifier_for_traits}': {str(e)}")
+                error_message = (
+                    f"Error calling trait data tool for ID(s) '{query_identifier_for_traits}': {str(e)}"
+                )
+
+            if error_message or raw_trait_data is None:
+                if not error_message:
+                    error_message = f"No data returned from trait API for ID(s) '{query_identifier_for_traits}'."
+                yield TextMessage(text=error_message)
                 return
 
-            if raw_trait_data is None:
-                yield TextMessage(text=f"No data returned from trait API for ID(s) '{query_identifier_for_traits}'.")
-                return
-            
             validated_trait_response: Optional[TraitDataResponse] = None
             trait_data_root: Optional[Dict[str, List[Any]]] = None
             is_trait_data_validated = False
