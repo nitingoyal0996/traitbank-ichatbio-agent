@@ -4,7 +4,6 @@ FROM ubuntu:24.04
 
 RUN apt-get update -y\
  && apt-get install -y\
-      postgresql\
       libpq-dev\
       python3-pip\
       python3.12-venv\
@@ -31,8 +30,8 @@ ENV VIRTUAL_ENV=/home/app/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-# Install dependencies using uv (without uv.lock)
-RUN uv pip install --system --no-cache --python $VIRTUAL_ENV/bin/python pyproject.toml
+# Install dependencies using uv
+RUN uv pip install --system --no-cache --require-hashes --python $VIRTUAL_ENV/bin/python pyproject.toml uv.lock
 
 # Define the port number the container should expose
 EXPOSE 9999
