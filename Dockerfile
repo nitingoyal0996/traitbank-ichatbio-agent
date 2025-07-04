@@ -7,7 +7,11 @@ RUN apt-get update -y\
       postgresql\
       libpq-dev\
       python3-pip\
-      python3.12-venv
+      python3.12-venv\
+      curl
+
+# Install uv (fast Python package manager)
+RUN curl -Ls https://astral.sh/uv/install.sh | sh
 
 # Permissions and nonroot user for tightened security
 RUN adduser --disabled-password nonroot
@@ -26,7 +30,9 @@ ENV VIRTUAL_ENV=/home/app/venv
 # Python setup
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-RUN pip3 install -r requirements.txt
+
+# Install dependencies using uv (without uv.lock)
+RUN uv pip install --system --no-cache --python $VIRTUAL_ENV/bin/python pyproject.toml
 
 # Define the port number the container should expose
 EXPOSE 9999
